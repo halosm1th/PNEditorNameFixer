@@ -1,5 +1,6 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
+using System.Diagnostics;
 using System.Xml;
 using DefaultNamespace;
 using PNCheckNewXMLs;
@@ -16,11 +17,162 @@ Console.WriteLine("Files gathered, finding files with Editor or Author node");
 
 var hasEditorOrAuthor = SelectFilesWithEditorOrAuthor(filesFromBiblio);
 Console.WriteLine("From previously found files, finding those without surname or forename child nodes");
-var filesWithInnerTextNoForeOrSurname = SelectFilesWithoutForeOrSurname(hasEditorOrAuthor);
-foreach (var file in filesWithInnerTextNoForeOrSurname)
+var filesWithoutForeOrSurname = SelectFilesWithoutForeOrSurname(hasEditorOrAuthor);
+UIUpdater(filesWithoutForeOrSurname);
+
+void UIUpdater(Dictionary<string, XmlDocument> xmlDocuments)
 {
-    Console.WriteLine($"{file.Key} was one of the problem files");
+    
+    foreach (var file in xmlDocuments)
+    {
+        XmlNamespaceManager nsmgr = new XmlNamespaceManager(file.Value.NameTable);
+        nsmgr.AddNamespace("tei", "http://www.tei-c.org/ns/1.0");
+
+        // Select the <surname> node directly under <author> using the namespace prefix
+        string xPathAuthorQuery = "/*[local-name()='bibl']/*[local-name()='author']";
+        string xPathEditorQuery = "/*[local-name()='bibl']/*[local-name()='editor']";
+        var authorNodes = file.Value.SelectSingleNode(xPathAuthorQuery);
+        var editorNodes = file.Value.SelectSingleNode(xPathEditorQuery);
+        var parts = authorNodes.InnerText.Split(" ");
+        if (parts.Length == 2)
+        {
+            var forename = file.Value.CreateElement("forename", "http://www.tei-c.org/ns/1.0");
+            forename.InnerText = parts[0];
+
+            // Insert as first child of root element
+
+            var surname = file.Value.CreateElement("surname", "http://www.tei-c.org/ns/1.0");
+            surname.InnerText = parts[1];
+
+            if (authorNodes != null)
+            {
+                authorNodes.InnerText = "";
+                authorNodes?.AppendChild(forename);
+                authorNodes?.AppendChild(surname);
+                Console.WriteLine($"Going to update file @ {file.Key}. Press any key to");
+                Console.ReadKey();
+                file.Value.Save(file.Key);
+                Console.WriteLine($"Updated file at @ {file.Key}.");
+            }
+            else if (editorNodes != null)
+            {
+                editorNodes.InnerText = "";
+                editorNodes?.AppendChild(forename);
+                editorNodes?.AppendChild(surname);
+                Console.WriteLine($"Going to update file @ {file.Key}. Press any key to");
+                Console.ReadKey();
+                file.Value.Save(file.Key);
+                Console.WriteLine($"Updated file at @ {file.Key}.");
+
+            }
+        }else if (parts.Length == 1)
+        {
+            Console.WriteLine($"File {file.Key} has one name, assuming its a surname and updating appropriatelys");
+            var surname = file.Value.CreateElement("surname", "http://www.tei-c.org/ns/1.0");
+            surname.InnerText = parts[0];
+
+            if (authorNodes != null)
+            {
+                authorNodes.InnerText = "";
+                authorNodes?.AppendChild(surname);
+                Console.WriteLine($"Going to update file @ {file.Key}. Press any key to");
+                Console.ReadKey();
+                file.Value.Save(file.Key);
+                Console.WriteLine($"Updated file at @ {file.Key}.");
+            }
+            else if (editorNodes != null)
+            {
+                editorNodes.InnerText = "";
+                editorNodes?.AppendChild(surname);
+                Console.WriteLine($"Going to update file @ {file.Key}. Press any key to");
+                Console.ReadKey();
+                file.Value.Save(file.Key);
+                Console.WriteLine($"Updated file at @ {file.Key}.");
+            }
+        } else if (parts.Length > 2)
+        {
+            Console.WriteLine($"File {file.Key} has many names, asking user for input");
+            var version  = DemoPossibleVersions(parts,1);
+
+            var forename = file.Value.CreateElement("forename", "http://www.tei-c.org/ns/1.0");
+            forename.InnerText = version.Forename;
+
+            // Insert as first child of root element
+
+            var surname = file.Value.CreateElement("surname", "http://www.tei-c.org/ns/1.0");
+            surname.InnerText = version.Surname;
+
+            if (authorNodes != null)
+            {
+                authorNodes.InnerText = "";
+                authorNodes?.AppendChild(forename);
+                authorNodes?.AppendChild(surname);
+                Console.WriteLine($"Going to update file @ {file.Key}. Press any key to");
+                Console.ReadKey();
+                file.Value.Save(file.Key);
+                Console.WriteLine($"Updated file at @ {file.Key}.");
+            }
+            else if (editorNodes != null)
+            {
+                editorNodes.InnerText = "";
+                editorNodes?.AppendChild(forename);
+                editorNodes?.AppendChild(surname);
+                Console.WriteLine($"Going to update file @ {file.Key}. Press any key to");
+                Console.ReadKey();
+                file.Value.Save(file.Key);
+                Console.WriteLine($"Updated file at @ {file.Key}.");
+
+            }
+        }
+        else
+        {
+            Console.WriteLine($"Have to figure out the UI for this still, but there are more than two names in file: {file.Key}, {authorNodes.InnerText}  ({parts.Length})");
+        }
+    }
 }
+
+
+(string Forename, string Surname) DemoPossibleVersions(string[] parts, int forenameStart)
+{
+    string foreName = "";
+
+    for (int i = 0; i < forenameStart; i++)
+    {
+        foreName += parts[i] + " ";
+    }
+
+    string lastName = "";
+
+    for (int i = forenameStart; i < parts.Length; i++)
+    {
+        lastName = lastName + parts[i] + " ";
+    }
+
+    
+    foreName= foreName.Trim();
+    lastName = lastName.Trim();
+    
+    Console.WriteLine($"Possible name: " +
+                      $"\n\t<forename> {foreName} </forename>" +
+                      $"\n\t<surname> {lastName} </surname>");
+
+    Console.WriteLine("Should it be used? (y)es/(n)ext/(s)top");
+    var key = Console.ReadKey();
+    if (key.Key == ConsoleKey.Y) return (foreName, lastName);
+    else if (key.Key == ConsoleKey.S) return ("NOT FOUND", "NOT FOUND");
+    else
+    {
+    forenameStart = forenameStart + 1;
+        return DemoPossibleVersions(parts, forenameStart);
+    }
+}
+
+
+void ProcessNode(XmlNodeList nodeWithName, KeyValuePair<string, XmlDocument> document)
+{
+    var authorNode = document.Value;
+}
+
 //var filesWithoutAnyUndernodes = SelectFilesWithNoUndernodes(filesWithInnerTextNoForeOrSurname);
 
 Dictionary<string, XmlDocument> SelectFilesWithoutForeOrSurname(Dictionary<string, XmlDocument> xmlDocuments)
@@ -79,7 +231,7 @@ Dictionary<string, XmlDocument> SelectFilesWithoutForeOrSurname(Dictionary<strin
         }
         else
         {
-            Console.WriteLine("The 'bibl' node does not have an 'author' child node.");
+            Console.WriteLine($"The 'bibl' {xmlDocument.Key} node does not have an 'author' or 'editor' child node.");
         }
 
     }
@@ -89,8 +241,8 @@ Dictionary<string, XmlDocument> SelectFilesWithoutForeOrSurname(Dictionary<strin
 
 bool FilesLacksSurnameOrForename(XmlNode surname, XmlNode forename, string path)
 {
-    Console.WriteLine($"testing: {path}");
-    if (surname != null && forename != null)
+    //Console.WriteLine($"testing: {path}");
+    if (surname != null || forename != null)
     {
         //Console.ForegroundColor = ConsoleColor.Green;
         //Console.WriteLine($"Found author node with fore and surname nodes in file {path}, with values: {surname.InnerText} {forename.InnerText}");
