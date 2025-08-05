@@ -1,6 +1,7 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
 using System.Diagnostics;
+using System.Text.RegularExpressions;
 using System.Xml;
 using DefaultNamespace;
 using PNCheckNewXMLs;
@@ -67,7 +68,7 @@ void UIUpdater(Dictionary<string, XmlDocument> xmlDocuments)
             }
         }else if (parts.Length == 1)
         {
-            Console.WriteLine($"File {file.Key} has one name, assuming its a surname and updating appropriatelys");
+            Console.WriteLine($"File {file.Key} has one name, assuming its a surname and updating as requested");
             var surname = file.Value.CreateElement("surname", "http://www.tei-c.org/ns/1.0");
             surname.InnerText = parts[0];
 
@@ -92,7 +93,8 @@ void UIUpdater(Dictionary<string, XmlDocument> xmlDocuments)
         } else if (parts.Length > 2)
         {
             Console.WriteLine($"File {file.Key} has many names, asking user for input");
-            var version  = DemoPossibleVersions(parts,1);
+            var versions = GenerateVersionsOfName(parts);
+            var version = SelectVersion(versions);
 
             var forename = file.Value.CreateElement("forename", "http://www.tei-c.org/ns/1.0");
             forename.InnerText = version.Forename;
@@ -131,9 +133,77 @@ void UIUpdater(Dictionary<string, XmlDocument> xmlDocuments)
     }
 }
 
-
-(string Forename, string Surname) DemoPossibleVersions(string[] parts, int forenameStart)
+(string Forename, string Surname) SelectVersion(List<(string Forename, string Surname)> versions)
 {
+    (string Forename, string Surname) version = ("[NONE]", "[NONE]");
+    bool chosen = false;
+    do
+    {
+        Console.WriteLine($"0) Forename: {version.Forename}, Surname: {version.Surname}.");
+        for (int i = 1; i < versions.Count; i++)
+        {
+            var displayNumber = i;
+            Console.WriteLine($"{displayNumber}) Forename: {versions[i].Forename}, Surname: {versions[i].Surname}.");
+        }
+
+        var choice = Console.ReadLine();
+        var number = new Regex(@"\d+");
+        if (choice.ToLower() == "0")
+        {
+            if(ConfirmChoice(("[NONE]", "[NONE]"))) return ("[NONE]", "[NONE]");
+        }else if (number.Match(choice).Success)
+        {
+            if (Int32.TryParse(choice, out var numb))
+            {
+                if (numb > versions.Count)
+                {
+                    Console.WriteLine($"Error, number {numb+1} was outside of range 0-{versions.Count}");
+                }
+                else
+                {
+                    version = versions[numb];
+                    if (ConfirmChoice(version)) return version;
+                    else version = ("[NONE]", "[NONE]");
+                }
+            }
+        }
+        else
+        {
+            Console.WriteLine($"Please enter a number between 0-{versions.Count}");
+        }
+
+    } while (!chosen);
+
+    return version;
+}
+
+bool ConfirmChoice((string, string) choice)
+{
+    Console.WriteLine($"You selected {choice}. Press (y) if that is correct.");
+    var key = Console.ReadKey();
+    if(key.Key == ConsoleKey.Y) return true;
+    else Console.WriteLine("Something other than Y was hit.");
+    return false;
+}
+
+List<(string Forename, string Surname)> GenerateVersionsOfName(string[] parts)
+{
+    
+    var versions = new List<(string Forename, string Surname)>();
+    for (int i = 0; i < parts.Length; i++)
+    {
+        var version = GeneratePossibleVersions(parts, i);
+        versions.Add(version);
+    }
+
+    return versions;
+}
+
+
+(string Forename, string Surname) GeneratePossibleVersions(string[] parts, int forenameStart)
+{
+    if (forenameStart > parts.Length) throw new ArgumentOutOfRangeException(nameof(forenameStart));
+    
     string foreName = "";
 
     for (int i = 0; i < forenameStart; i++)
@@ -152,19 +222,8 @@ void UIUpdater(Dictionary<string, XmlDocument> xmlDocuments)
     foreName= foreName.Trim();
     lastName = lastName.Trim();
     
-    Console.WriteLine($"Possible name: " +
-                      $"\n\t<forename> {foreName} </forename>" +
-                      $"\n\t<surname> {lastName} </surname>");
 
-    Console.WriteLine("Should it be used? (y)es/(n)ext/(s)top");
-    var key = Console.ReadKey();
-    if (key.Key == ConsoleKey.Y) return (foreName, lastName);
-    else if (key.Key == ConsoleKey.S) return ("NOT FOUND", "NOT FOUND");
-    else
-    {
-    forenameStart = forenameStart + 1;
-        return DemoPossibleVersions(parts, forenameStart);
-    }
+    return (foreName, lastName);
 }
 
 
