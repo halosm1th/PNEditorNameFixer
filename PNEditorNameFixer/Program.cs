@@ -133,17 +133,32 @@ void UIUpdater(Dictionary<string, XmlDocument> xmlDocuments)
     }
 }
 
+void PrintText(int number, string Forename, string Surname){
+
+    Console.ForegroundColor = ConsoleColor.Magenta;
+    Console.Write($"{number}) ");
+    Console.ResetColor();
+    Console.Write("Forename: ");
+    Console.ForegroundColor = ConsoleColor.Green;
+    Console.Write($"{Forename}");
+    Console.ResetColor();
+    Console.Write(", Surname: ");
+    Console.ForegroundColor = ConsoleColor.Blue;
+    Console.Write($"{Surname}.\n");
+    Console.ResetColor();
+}
+
 (string Forename, string Surname) SelectVersion(List<(string Forename, string Surname)> versions)
 {
     (string Forename, string Surname) version = ("[NONE]", "[NONE]");
     bool chosen = false;
     do
     {
-        Console.WriteLine($"0) Forename: {version.Forename}, Surname: {version.Surname}.");
+        PrintText(0, version.Forename, version.Surname);
         for (int i = 1; i < versions.Count; i++)
         {
             var displayNumber = i;
-            Console.WriteLine($"{displayNumber}) Forename: {versions[i].Forename}, Surname: {versions[i].Surname}.");
+            PrintText(displayNumber, versions[i].Forename, versions[i].Surname);
         }
 
         var choice = Console.ReadLine();
