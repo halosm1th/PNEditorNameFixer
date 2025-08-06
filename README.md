@@ -25,13 +25,13 @@ cd PNEditorNameFixer
 
 ## 📁 Directory Structure
 
-```
+
+```bash
 project-root/
 ├── IDP.data/
 │   └── biblio
 ├── PNEditorNameFixer/
 │   └── ...
-
 ```
 
 ## 🧪 Troubleshooting
