@@ -15,6 +15,7 @@ public class XMLDirectoryFinder
     public string FindXmlDirectory(string startingDir)
     {
         Console.WriteLine("Starting Search for newXMl Directory");
+        _logger.LogProcessingInfo("Starting Search for newXMl Directory");
         var xmlDir = FindNewXmlDirectory(startingDir);
         
         _logger.LogProcessingInfo($"Found XMl Dir @: {xmlDir}");
@@ -25,6 +26,7 @@ public class XMLDirectoryFinder
     public string FindBiblioDirectory(string startingDir)
     {
         Console.WriteLine($"Trying to find IDP.Data Directory. Starting at: {startingDir}");
+        _logger.LogProcessingInfo($"Trying to find IDP.Data Directory. Starting at: {startingDir}");
         var idpData = FindIDPDataDirectory(startingDir);
         
         var DirsInIDP = Directory.GetDirectories(idpData);
@@ -41,6 +43,7 @@ public class XMLDirectoryFinder
     private string FindNewXmlDirectory(string idp_DataDir, string searchingForName = "BpToPnOutput")
     {
         Console.WriteLine($"Trying to find new XML directory: {idp_DataDir}");
+        _logger.LogProcessingInfo($"Trying to find new XML directory: {idp_DataDir}");
         var DirsInIDP = Directory.GetDirectories(idp_DataDir);
         if (DirsInIDP.Any(x => x.ToLower().Contains(searchingForName.ToLower())))
         {
@@ -50,6 +53,7 @@ public class XMLDirectoryFinder
             {
                 var dirPath = dirsInBPToPN.First(x => x.Contains("NewXmlEntries"));
                 Console.WriteLine(dirPath);
+                _logger.LogProcessingInfo(dirPath);
                 return dirPath;
             }
         }
@@ -67,6 +71,7 @@ public class XMLDirectoryFinder
     public string FindIDPDataDirectory(string startingDirectory, string searchTerm = "idp.data")
     {
         Console.WriteLine($"Trying: {startingDirectory}");
+        _logger.LogProcessingInfo($"Trying: {startingDirectory}");
         var dirs = Directory.GetDirectories(startingDirectory);
         if (dirs.Any(x => x.Contains(searchTerm)))
         {

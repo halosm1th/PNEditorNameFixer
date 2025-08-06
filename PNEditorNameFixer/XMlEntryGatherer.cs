@@ -51,7 +51,7 @@ public class XMLEntryGatherer
                 }
                 else
                 {
-                    //logger.LogProcessingInfo($"Found a node that is not an element, moving onto {filePath}");
+                    logger.LogProcessingInfo($"getting: {filePath}");
                     Console.WriteLine($"getting: {filePath}");
                 }
             }
@@ -122,6 +122,7 @@ public class XMLEntryGatherer
             foreach (var folder in Directory.GetDirectories(BiblioPath))
             {
                 Console.WriteLine($"Gathering files in: {folder}");
+                logger.LogProcessingInfo($"Gathering files in: {folder}");
                 foreach (var file in Directory.GetFiles(folder))
                 {
                     var doc = new XmlDocument();

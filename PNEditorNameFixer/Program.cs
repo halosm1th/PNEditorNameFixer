@@ -8,16 +8,24 @@ using PNCheckNewXMLs;
 
 var logger = new Logger();
 Console.WriteLine("Logger creating, finding biblio directory");
+logger.Log("Logger creating, finding biblio directory");
+
 var directory = FindBiblioDirectory(logger);
 Console.WriteLine("Found biblio directory, creating file gatherer");
+logger.Log("Found biblio directory, creating file gatherer");
 
 var fileGatherer = new XMLEntryGatherer(directory, logger);
 Console.WriteLine("Created entry gatherer, starting to gather files");
+logger.Log("Created entry gatherer, starting to gather files");
+
 var filesFromBiblio  = fileGatherer.GatherFiles();
 Console.WriteLine("Files gathered, finding files with Editor or Author node");
+logger.Log("Files gathered, finding files with Editor or Author node");
 
 var hasEditorOrAuthor = SelectFilesWithEditorOrAuthor(filesFromBiblio);
 Console.WriteLine("From previously found files, finding those without surname or forename child nodes");
+
+logger.Log("From previously found files, finding those without surname or forename child nodes");
 var filesWithoutForeOrSurname = SelectFilesWithoutForeOrSurname(hasEditorOrAuthor);
 UIUpdater(filesWithoutForeOrSurname);
 
@@ -47,24 +55,11 @@ void UIUpdater(Dictionary<string, XmlDocument> xmlDocuments)
 
             if (authorNodes != null)
             {
-                authorNodes.InnerText = "";
-                authorNodes?.AppendChild(forename);
-                authorNodes?.AppendChild(surname);
-                Console.WriteLine($"Going to update file @ {file.Key}. Press any key to");
-                Console.ReadKey();
-                file.Value.Save(file.Key);
-                Console.WriteLine($"Updated file at @ {file.Key}.");
+                ConfirmAndSaveNode(authorNodes, forename, surname, file.Key, file.Value);
             }
             else if (editorNodes != null)
             {
-                editorNodes.InnerText = "";
-                editorNodes?.AppendChild(forename);
-                editorNodes?.AppendChild(surname);
-                Console.WriteLine($"Going to update file @ {file.Key}. Press any key to");
-                Console.ReadKey();
-                file.Value.Save(file.Key);
-                Console.WriteLine($"Updated file at @ {file.Key}.");
-
+                ConfirmAndSaveNode(editorNodes, forename, surname, file.Key, file.Value);
             }
         }else if (parts.Length == 1)
         {
@@ -74,21 +69,11 @@ void UIUpdater(Dictionary<string, XmlDocument> xmlDocuments)
 
             if (authorNodes != null)
             {
-                authorNodes.InnerText = "";
-                authorNodes?.AppendChild(surname);
-                Console.WriteLine($"Going to update file @ {file.Key}. Press any key to");
-                Console.ReadKey();
-                file.Value.Save(file.Key);
-                Console.WriteLine($"Updated file at @ {file.Key}.");
+                ConfirmAndSaveNode(authorNodes, null, surname, file.Key, file.Value);
             }
             else if (editorNodes != null)
             {
-                editorNodes.InnerText = "";
-                editorNodes?.AppendChild(surname);
-                Console.WriteLine($"Going to update file @ {file.Key}. Press any key to");
-                Console.ReadKey();
-                file.Value.Save(file.Key);
-                Console.WriteLine($"Updated file at @ {file.Key}.");
+                ConfirmAndSaveNode(editorNodes, null, surname, file.Key, file.Value);
             }
         } else if (parts.Length > 2)
         {
@@ -106,31 +91,37 @@ void UIUpdater(Dictionary<string, XmlDocument> xmlDocuments)
 
             if (authorNodes != null)
             {
-                authorNodes.InnerText = "";
-                authorNodes?.AppendChild(forename);
-                authorNodes?.AppendChild(surname);
-                Console.WriteLine($"Going to update file @ {file.Key}. Press any key to");
-                Console.ReadKey();
-                file.Value.Save(file.Key);
-                Console.WriteLine($"Updated file at @ {file.Key}.");
+                ConfirmAndSaveNode(authorNodes, forename, surname, file.Key, file.Value);
             }
             else if (editorNodes != null)
             {
-                editorNodes.InnerText = "";
-                editorNodes?.AppendChild(forename);
-                editorNodes?.AppendChild(surname);
-                Console.WriteLine($"Going to update file @ {file.Key}. Press any key to");
-                Console.ReadKey();
-                file.Value.Save(file.Key);
-                Console.WriteLine($"Updated file at @ {file.Key}.");
+                    ConfirmAndSaveNode(editorNodes, forename, surname, file.Key, file.Value);
 
             }
         }
         else
         {
             Console.WriteLine($"Have to figure out the UI for this still, but there are more than two names in file: {file.Key}, {authorNodes.InnerText}  ({parts.Length})");
+            logger.LogProcessingInfo($"Have to figure out the UI for this still, but there are more than two names in file: {file.Key}, {authorNodes.InnerText}  ({parts.Length})");
         }
     }
+}
+
+void ConfirmAndSaveNode(XmlNode? node, XmlNode? forename, XmlNode? surname,  string fileName, XmlDocument file)
+{
+    if (node != null)
+    {
+        node.InnerText = "";
+        if(forename != null) node?.AppendChild(forename);
+        if(surname != null) node?.AppendChild(surname);
+        
+        Console.WriteLine($"Going to update file @ {fileName}. Press any key to");
+        Console.ReadKey();
+        file.Save(fileName);
+        Console.WriteLine($"Updated file at @ {fileName}.");
+        logger.LogProcessingInfo($"Updated file at @ {fileName} to add forename and surname nodes with values: {forename.InnerText}, {surname.InnerText}.");
+    }
+
 }
 
 void PrintText(int number, string Forename, string Surname){
@@ -253,9 +244,10 @@ Dictionary<string, XmlDocument> SelectFilesWithoutForeOrSurname(Dictionary<strin
 {    
     var FilesWithoutForeOrSurname = new Dictionary<string, XmlDocument>();
 
+    logger.LogProcessingInfo($"Checking {xmlDocuments.Count} files to see if they have fore or surname");
     foreach (var xmlDocument in xmlDocuments)
     {
-        
+        logger.LogProcessingInfo($"Checking file: {xmlDocument.Key}");
         XmlNamespaceManager nsmgr = new XmlNamespaceManager(xmlDocument.Value.NameTable);
         nsmgr.AddNamespace("tei", "http://www.tei-c.org/ns/1.0");
 
@@ -273,6 +265,7 @@ Dictionary<string, XmlDocument> SelectFilesWithoutForeOrSurname(Dictionary<strin
                 
                 Console.ForegroundColor = ConsoleColor.Green;
                 Console.WriteLine($"The file {xmlDocument.Key} lacks surname or forname, but has author node");
+                logger.LogProcessingInfo($"The file {xmlDocument.Key} lacks surname or forname, but has author node");
                 Console.ResetColor();
                 FilesWithoutForeOrSurname.Add(xmlDocument.Key, xmlDocument.Value);
             }
@@ -292,6 +285,7 @@ Dictionary<string, XmlDocument> SelectFilesWithoutForeOrSurname(Dictionary<strin
                 
                 Console.ForegroundColor = ConsoleColor.Green;
                 Console.WriteLine($"The file {xmlDocument.Key} lacks surname or forname but has editor node");
+                logger.LogProcessingInfo($"The file {xmlDocument.Key} lacks surname or forname but has editor node");
                 Console.ResetColor();
                 FilesWithoutForeOrSurname.Add(xmlDocument.Key, xmlDocument.Value);
             }
@@ -299,13 +293,14 @@ Dictionary<string, XmlDocument> SelectFilesWithoutForeOrSurname(Dictionary<strin
             {
                 
                 Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine($"The file {xmlDocument.Key} has either surname or forname");
+                logger.LogProcessingInfo($"The file {xmlDocument.Key} has either surname or forname");
                 Console.ResetColor();
             }
         }
         else
         {
             Console.WriteLine($"The 'bibl' {xmlDocument.Key} node does not have an 'author' or 'editor' child node.");
+            logger.LogProcessingInfo($"The 'bibl' {xmlDocument.Key} node does not have an 'author' or 'editor' child node.");
         }
 
     }
@@ -315,18 +310,18 @@ Dictionary<string, XmlDocument> SelectFilesWithoutForeOrSurname(Dictionary<strin
 
 bool FilesLacksSurnameOrForename(XmlNode surname, XmlNode forename, string path)
 {
-    //Console.WriteLine($"testing: {path}");
+    logger.LogProcessingInfo($"testing: {path}");
     if (surname != null || forename != null)
     {
         //Console.ForegroundColor = ConsoleColor.Green;
-        //Console.WriteLine($"Found author node with fore and surname nodes in file {path}, with values: {surname.InnerText} {forename.InnerText}");
+        logger.LogProcessingInfo($"Found author node with fore and surname nodes in file {path}, with values: {surname.InnerText} {forename.InnerText}");
         //Console.ResetColor();
         return false;
     }
     else
     {
         //Console.ForegroundColor = ConsoleColor.Red;
-        //Console.WriteLine($"Could not find either author fore or surname nodes in file {path}"); 
+        logger.LogProcessingInfo($"Could not find either author fore or surname nodes in file {path}"); 
         //Console.ResetColor();
         return true;
     }
@@ -337,10 +332,12 @@ Dictionary<string, XmlDocument> SelectFilesWithEditorOrAuthor(Dictionary<string,
     var DocsWithEditorOrAuthor = new Dictionary<string, XmlDocument>();
 
     Console.WriteLine("Selecting files");
+    logger.LogProcessingInfo("Selecting files");
     foreach (var xmlDocument in xmlDocuments)
     {
 
         Console.WriteLine($"Checking: {xmlDocument.Key}");
+        logger.LogProcessingInfo($"Checking: {xmlDocument.Key}");
         XmlNamespaceManager nsmgr = new XmlNamespaceManager(xmlDocument.Value.NameTable);
         nsmgr.AddNamespace("tei", "http://www.tei-c.org/ns/1.0");
 
@@ -354,6 +351,7 @@ Dictionary<string, XmlDocument> SelectFilesWithEditorOrAuthor(Dictionary<string,
         {
             Console.ForegroundColor = ConsoleColor.Green;
             Console.WriteLine($"Found author for file: {xmlDocument.Key}");
+            logger.LogProcessingInfo($"Found author for file: {xmlDocument.Key}");
             Console.ResetColor();
             DocsWithEditorOrAuthor.Add(xmlDocument.Key, xmlDocument.Value);
         }
@@ -361,6 +359,7 @@ Dictionary<string, XmlDocument> SelectFilesWithEditorOrAuthor(Dictionary<string,
         {
             Console.ForegroundColor = ConsoleColor.Red;
             Console.WriteLine($"Could not find author for file: {xmlDocument.Key}");
+            logger.LogProcessingInfo($"Could not find author for file: {xmlDocument.Key}");
             Console.ResetColor();
         }
     }
@@ -371,8 +370,11 @@ Dictionary<string, XmlDocument> SelectFilesWithEditorOrAuthor(Dictionary<string,
 
 static string FindBiblioDirectory(Logger logger)
 {
+    logger.LogProcessingInfo("Finding biblio directory");
     var directoryFinder = new XMLDirectoryFinder(logger);
     var startingDir = Directory.GetCurrentDirectory();
+    logger.LogProcessingInfo($"Starting directory for search: {startingDir}");
     var directory = directoryFinder.FindBiblioDirectory(startingDir);
+    logger.LogProcessingInfo($"Found biblio directory: {directory}");
     return directory;
 }
