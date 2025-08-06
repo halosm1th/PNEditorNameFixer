@@ -314,7 +314,7 @@ bool FilesLacksSurnameOrForename(XmlNode surname, XmlNode forename, string path)
     if (surname != null || forename != null)
     {
         //Console.ForegroundColor = ConsoleColor.Green;
-        logger.LogProcessingInfo($"Found author node with fore and surname nodes in file {path}, with values: {surname.InnerText} {forename.InnerText}");
+        //logger.LogProcessingInfo($"Found author node with fore and surname nodes in file {path}, with values: {surname.InnerText} {forename.InnerText}");
         //Console.ResetColor();
         return false;
     }
