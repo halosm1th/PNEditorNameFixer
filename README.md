@@ -22,6 +22,7 @@
 ```bash
 git clone https://github.com/halosm1th/PNEditorNameFixer.git
 cd PNEditorNameFixer
+```
 
 ## 📁 Directory Structure
 
