@@ -119,7 +119,7 @@ void ConfirmAndSaveNode(XmlNode? node, XmlNode? forename, XmlNode? surname,  str
         Console.ReadKey();
         file.Save(fileName);
         Console.WriteLine($"Updated file at @ {fileName}.");
-        logger.LogProcessingInfo($"Updated file at @ {fileName} to add forename and surname nodes with values: {forename.InnerText}, {surname.InnerText}.");
+        //logger.LogProcessingInfo($"Updated file at @ {fileName} to add forename and surname nodes with values: {forename.InnerText}, {surname.InnerText}.");
     }
 
 }
