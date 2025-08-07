@@ -19,7 +19,7 @@ Console.WriteLine("Created entry gatherer, starting to gather files");
 logger.Log("Created entry gatherer, starting to gather files");
 
 var filesFromBiblio  = fileGatherer.GatherFiles();
-Console.WriteLine("Files gathered, finding files with Editor or Author node");
+Console.WriteLine($"{filesFromBiblio.Count()} Files gathered, finding files with Editor or Author node");
 logger.Log("Files gathered, finding files with Editor or Author node");
 
 var hasEditorOrAuthor = SelectFilesWithEditorOrAuthor(filesFromBiblio);
@@ -102,7 +102,7 @@ void UIUpdater(Dictionary<string, XmlDocument> xmlDocuments)
         else
         {
             Console.WriteLine($"Have to figure out the UI for this still, but there are more than two names in file: {file.Key}, {authorNodes.InnerText}  ({parts.Length})");
-            logger.LogProcessingInfo($"Have to figure out the UI for this still, but there are more than two names in file: {file.Key}, {authorNodes.InnerText}  ({parts.Length})");
+            logger.LogProcessingInfo($"Have to figure out the UI for this still, but there are more than two names in file: {file.Key}, {authorNodes.InnerText  ?? "None" }  ({parts.Length})");
         }
     }
 }
@@ -119,7 +119,7 @@ void ConfirmAndSaveNode(XmlNode? node, XmlNode? forename, XmlNode? surname,  str
         Console.ReadKey();
         file.Save(fileName);
         Console.WriteLine($"Updated file at @ {fileName}.");
-        logger.LogProcessingInfo($"Updated file at @ {fileName} to add forename and surname nodes with values: {forename.InnerText}, {surname.InnerText}.");
+        logger.LogProcessingInfo($"Updated file at @ {fileName} to add forename and surname nodes with values: {forename.InnerText  ?? "None" }, {surname.InnerText  ?? "None" }.");
     }
 
 }
@@ -314,7 +314,7 @@ bool FilesLacksSurnameOrForename(XmlNode surname, XmlNode forename, string path)
     if (surname != null || forename != null)
     {
         //Console.ForegroundColor = ConsoleColor.Green;
-        logger.LogProcessingInfo($"Found author node with fore and surname nodes in file {path}, with values: {surname.InnerText} {forename.InnerText}");
+        logger.LogProcessingInfo($"Found author node with fore and surname nodes in file {path}, with values: {surname.InnerText ?? "None" } {forename.InnerText ?? "None"}");
         //Console.ResetColor();
         return false;
     }
