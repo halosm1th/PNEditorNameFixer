@@ -129,14 +129,30 @@ public class XMLEntryGatherer
         try
         {
             foreach (var folder in Directory.GetDirectories(BiblioPath))
-            {
-                Console.WriteLine($"Gathering files in: {folder}");
-                logger.LogProcessingInfo($"Gathering files in: {folder}");
-                foreach (var file in Directory.GetFiles(folder))
+            {                
+                int startNumb = Convert.ToInt32(StartFolder);
+                int endNumb = Convert.ToInt32(EndFolder);
+
+                int folderNumb = -1;
+                var foldNumb = folder.Split("\\idp.data\\Biblio\\");
+                if (int.TryParse(foldNumb[1], out folderNumb))
                 {
-                    var doc = new XmlDocument();
-                    doc.Load(file);
-                    entries.Add(file, doc);
+                    if (folderNumb >= startNumb && folderNumb <= endNumb)
+                    {
+                        Console.WriteLine($"Gathering files in: {folder}");
+                        logger.LogProcessingInfo($"Gathering files in: {folder}");
+                        foreach (var file in Directory.GetFiles(folder))
+                        {
+                            var doc = new XmlDocument();
+                            doc.Load(file);
+                            entries.Add(file, doc);
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Folder {folder} is outside range {StartFolder}-{EndFolder}");
+                        logger.LogProcessingInfo($"Folder {folder} is outside range {StartFolder}-{EndFolder}");
+                    }
                 }
             }
         }

@@ -87,10 +87,10 @@ class PNEditorNameFixer
                 }*/
             });
 
+            rootCommand.Invoke(args);
 
             // Invoke the command line parser with the provided arguments
             // System.CommandLine will automatically handle help (-h or --help) and validation errors.
-            rootCommand.Invoke(args);
     }
 
     static void Core(string start = "1", string end ="98")
