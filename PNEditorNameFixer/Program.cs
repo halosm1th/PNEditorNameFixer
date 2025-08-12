@@ -261,15 +261,23 @@ class PNEditorNameFixer
             if (surname != null) node?.AppendChild(surname);
 
             Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine($"Going to add <forename>{forename?.InnerText ?? ""}</forename> <surname>{surname?.InnerText ?? ""}</surname> to file @ {fileName}.\nPress any key to do so.");
+            Console.WriteLine($"Going to add <forename>{forename?.InnerText ?? ""}</forename> <surname>{surname?.InnerText ?? ""}</surname> to file @ {fileName}.\nPress y to save.");
             Console.ResetColor();
-            Console.ReadKey();
-            file.Save(fileName);
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine($"Updated file at @ {fileName} to add values: [Forename: {forename?.InnerText ?? "None"}] [Surname: {surname?.InnerText ?? "None"}].");
-            Console.ResetColor();
-            logger.LogProcessingInfo(
-                $"Updated file at @ {fileName} to add forename and surname nodes with values: {forename?.InnerText ?? "None"}, {surname?.InnerText ?? "None"}.");
+            var key = Console.ReadKey();
+            if (key.Key == ConsoleKey.Y)
+            {
+                file.Save(fileName);
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine(
+                    $"Updated file at @ {fileName} to add values: [Forename: {forename?.InnerText ?? "None"}] [Surname: {surname?.InnerText ?? "None"}].");
+                Console.ResetColor();
+                logger.LogProcessingInfo(
+                    $"Updated file at @ {fileName} to add forename and surname nodes with values: {forename?.InnerText ?? "None"}, {surname?.InnerText ?? "None"}.");
+            }
+            else
+            {
+                Console.WriteLine("Did not update file.");
+            }
         }
 
     }
