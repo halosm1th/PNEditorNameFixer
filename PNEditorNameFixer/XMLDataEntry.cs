@@ -1,4 +1,5 @@
-﻿namespace DefaultNamespace;
+﻿#pragma warning disable CS0108, CS0114
+namespace DefaultNamespace;
 
 public class XMLDataEntry : BPDataEntry
 {
@@ -10,11 +11,11 @@ public class XMLDataEntry : BPDataEntry
     public bool HasNo => HasBPNum;
     public string No => BPNumber ?? "0000-0000";
     
-    public string TitleLevel { get; set; }
+    public string? TitleLevel { get; set; }
 
 
-    public string PNFileName { get; set; }
-    public string PNNumber { get; set; }
+    public string? PNFileName { get; set; } = null;
+    public string? PNNumber { get; set; } = null;
 
     public bool AnyMatch(BPDataEntry entry)
     {
