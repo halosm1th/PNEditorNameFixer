@@ -277,6 +277,7 @@ class PNEditorNameFixer
             else
             {
                 Console.WriteLine("Did not update file.");
+                logger.LogProcessingInfo("did not update file");
             }
         }
 
