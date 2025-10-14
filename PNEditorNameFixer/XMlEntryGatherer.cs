@@ -137,10 +137,6 @@ public class XMLEntryGatherer
                 var foldNumb = new string[0];
                 if(folder.Contains("\\")) foldNumb = folder.Split("\\idp.data\\Biblio\\");
                 else if (folder.Contains("/")) foldNumb = folder.Split("/idp.data/Biblio/");
-
-                Console.ForegroundColor = ConsoleColor.Magenta;
-                Console.WriteLine($"Found folder: {foldNumb}");
-                Console.ResetColor();
                 
                 if (int.TryParse(foldNumb[1], out folderNumb))
                 {
@@ -148,7 +144,7 @@ public class XMLEntryGatherer
                     {
                         Console.WriteLine($"Gathering files in: {folder}");
                         logger.LogProcessingInfo($"Gathering files in: {folder}");
-                        foreach (var file in Directory.GetFiles(folder))
+                        foreach (var file in Directory.GetFiles(folder, "*.xml"))
                         {
                             var doc = new XmlDocument();
                             doc.Load(file);

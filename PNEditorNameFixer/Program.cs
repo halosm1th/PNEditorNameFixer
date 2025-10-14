@@ -11,87 +11,6 @@ using System.IO.Compression;
 class PNEditorNameFixer
 {
     private static Logger logger = null;
-    public static void Main(string[] args)
-    {
-        logger = new Logger();
-        Console.WriteLine("Logger creating, handling arguments");
-        logger.Log("Logger creating, handling arguments");
-        
-         var helpOption = new Option<bool>(
-                name: "--menu",
-                description: "Show help menu.",
-                getDefaultValue: () => false
-            );
-            helpOption.AddAlias("-h");
-
-            var startYearOption = new Option<string>(
-                name: "--start",
-                description: "Show help menu.",
-                getDefaultValue: () => "1"
-            );
-            helpOption.AddAlias("-sf");
-            
-            var endYearOption = new Option<string>(
-                name: "--end",
-                description: "Show help menu.",
-                getDefaultValue: () => "98"
-            );
-            helpOption.AddAlias("-ef");
-            
-            // Create the root command for the application
-            var rootCommand =
-                new RootCommand(
-                    "Name checker, runs against files to see if the author and editor names are properly formated.")
-                {
-                    helpOption,
-                    startYearOption,
-                    endYearOption
-                };
-
-
-            // Set the handler for the root command. This action will be executed when the command is invoked.
-            rootCommand.SetHandler((context) =>
-            {
-                var showHelp = context.ParseResult.GetValueForOption(helpOption);
-                if (showHelp)
-                {
-                    if (rootCommand.Description != null) context.Console.Out.Write(rootCommand.Description+ "\n");
-                    context.ExitCode = 0;
-                    rootCommand.Invoke("-h"); // force internal help logic
-                    Environment.Exit(context.ExitCode);
-                }
-
-                // Retrieve the parsed values for each option
-                var startYear = context.ParseResult.GetValueForOption(startYearOption) ?? "1";
-                var endYear = context.ParseResult.GetValueForOption(endYearOption) ?? "98";
-
-                logger.Log("Parsing args completed.");
-                Console.WriteLine($"Args parsed. Start Year: {startYear}, End Year: {endYear}.");
-                logger.Log($"Start Year: {startYear}, End Year: {endYear}");
-
-                
-                Core(startYear, endYear);
-                
-                /***
-                
-                Console.WriteLine("Have you pulled the latest version of IDP_DATA? (y/n)");
-                var input = Console.ReadLine().ToLower();
-                if (input == "y")
-                {
-                    // If all validations pass, proceed with the core application logic
-                }
-                else
-                {
-                    Console.WriteLine("If you don't have the most up to date info, this program should not run. " +
-                                      "Please git pull for the newest info and then run me.");
-                }*/
-            });
-
-            rootCommand.Invoke(args);
-
-            // Invoke the command line parser with the provided arguments
-            // System.CommandLine will automatically handle help (-h or --help) and validation errors.
-    }
 
     static void Core(string start = "1", string end ="98")
     {
@@ -229,18 +148,22 @@ class PNEditorNameFixer
                 var versions = GenerateVersionsOfName(parts.ToArray());
                 var version = SelectVersion(versions);
 
-                var forename = document.CreateElement("forename", "http://www.tei-c.org/ns/1.0");
-                forename.InnerText = version.Forename;
-
-                // Insert as first child of root element
-
-                var surname = document.CreateElement("surname", "http://www.tei-c.org/ns/1.0");
-                surname.InnerText = version.Surname;
-
-
-                if (node != null)
+                if (version.Forename != "" && version.Surname != "")
                 {
-                    ConfirmAndSaveNode(node, forename, surname, path, document);
+
+                    var forename = document.CreateElement("forename", "http://www.tei-c.org/ns/1.0");
+                    forename.InnerText = version.Forename;
+
+                    // Insert as first child of root element
+
+                    var surname = document.CreateElement("surname", "http://www.tei-c.org/ns/1.0");
+                    surname.InnerText = version.Surname;
+
+
+                    if (node != null)
+                    {
+                        ConfirmAndSaveNode(node, forename, surname, path, document);
+                    }
                 }
             }
             else
@@ -261,7 +184,7 @@ class PNEditorNameFixer
             if (surname != null) node?.AppendChild(surname);
 
             Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine($"Going to add <forename>{forename?.InnerText ?? ""}</forename> <surname>{surname?.InnerText ?? ""}</surname> to file @ {fileName}.\nPress y to save.");
+            Console.WriteLine($"Going to add <forename>{forename?.InnerText ?? ""}</forename> <surname>{surname?.InnerText ?? ""}</surname> to file @ {fileName}.\nPress y to save. N to skip");
             Console.ResetColor();
             var key = Console.ReadKey();
             if (key.Key == ConsoleKey.Y)
@@ -273,6 +196,10 @@ class PNEditorNameFixer
                 Console.ResetColor();
                 logger.LogProcessingInfo(
                     $"Updated file at @ {fileName} to add forename and surname nodes with values: {forename?.InnerText ?? "None"}, {surname?.InnerText ?? "None"}.");
+            }else if (key.Key == ConsoleKey.N)
+            {
+                Console.WriteLine("File skipped.");
+                logger.LogProcessingInfo("File skipped");
             }
             else
             {
@@ -305,6 +232,7 @@ class PNEditorNameFixer
         bool chosen = false;
         do
         {
+            Console.WriteLine("Enter S to skip.");
             PrintText(0, version.Forename, version.Surname);
             for (int i = 1; i < versions.Count; i++)
             {
@@ -314,7 +242,11 @@ class PNEditorNameFixer
 
             var choice = Console.ReadLine();
             var number = new Regex(@"\d+");
-            if (choice?.ToLower() == "0")
+            if (choice?.ToLower() == "s")
+            {
+                return ("", "");
+            }
+            else if (choice?.ToLower() == "0")
             {
                 if (ConfirmChoice(("[NONE]", "[NONE]"))) return ("[NONE]", "[NONE]");
             }
@@ -585,19 +517,18 @@ class PNEditorNameFixer
             if (authorfirstName != null || editorFirstName != null
                 && (authorfirstName?.ParentNode?.InnerXml.Contains("bibl") ?? false)
                 && (editorFirstName?.ParentNode?.InnerXml.Contains("bibl") ?? false))
-
+            {
                 if (authorfirstName != null)
                 {
                     Console.ForegroundColor = ConsoleColor.Green;
                     Console.WriteLine($"Found author for file: {xmlDocument.Key}");
                 }
-
-            if (editorFirstName != null)
-            {
+                else if (editorFirstName != null)
                 {
                     Console.ForegroundColor = ConsoleColor.Cyan;
                     Console.WriteLine($"Found editor for file: {xmlDocument.Key}");
                 }
+
                 logger.LogProcessingInfo($"Found author for file: {xmlDocument.Key}");
                 Console.ResetColor();
                 DocsWithEditorOrAuthor.Add(xmlDocument.Key, xmlDocument.Value);
@@ -605,8 +536,8 @@ class PNEditorNameFixer
             else
             {
                 Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine($"Could not find author for file: {xmlDocument.Key}");
-                logger.LogProcessingInfo($"Could not find author for file: {xmlDocument.Key}");
+                Console.WriteLine($"Could not find author or editor for file: {xmlDocument.Key}");
+                logger.LogProcessingInfo($"Could not find author or editor for file: {xmlDocument.Key}");
                 Console.ResetColor();
             }
         }
@@ -624,5 +555,88 @@ class PNEditorNameFixer
         var directory = directoryFinder.FindBiblioDirectory(startingDir);
         logger.LogProcessingInfo($"Found biblio directory: {directory}");
         return directory;
+    }
+    
+    
+    public static void Main(string[] args)
+    {
+        logger = new Logger();
+        Console.WriteLine("Logger creating, handling arguments");
+        logger.Log("Logger creating, handling arguments");
+        
+         var helpOption = new Option<bool>(
+                name: "--menu",
+                description: "Show help menu.",
+                getDefaultValue: () => false
+            );
+            helpOption.AddAlias("-h");
+
+            var startYearOption = new Option<string>(
+                name: "--start",
+                description: "Show help menu.",
+                getDefaultValue: () => "1"
+            );
+            helpOption.AddAlias("-sf");
+            
+            var endYearOption = new Option<string>(
+                name: "--end",
+                description: "Show help menu.",
+                getDefaultValue: () => "98"
+            );
+            helpOption.AddAlias("-ef");
+            
+            // Create the root command for the application
+            var rootCommand =
+                new RootCommand(
+                    "Name checker, runs against files to see if the author and editor names are properly formated.")
+                {
+                    helpOption,
+                    startYearOption,
+                    endYearOption
+                };
+
+
+            // Set the handler for the root command. This action will be executed when the command is invoked.
+            rootCommand.SetHandler((context) =>
+            {
+                var showHelp = context.ParseResult.GetValueForOption(helpOption);
+                if (showHelp)
+                {
+                    if (rootCommand.Description != null) context.Console.Out.Write(rootCommand.Description+ "\n");
+                    context.ExitCode = 0;
+                    rootCommand.Invoke("-h"); // force internal help logic
+                    Environment.Exit(context.ExitCode);
+                }
+
+                // Retrieve the parsed values for each option
+                var startYear = context.ParseResult.GetValueForOption(startYearOption) ?? "1";
+                var endYear = context.ParseResult.GetValueForOption(endYearOption) ?? "98";
+
+                logger.Log("Parsing args completed.");
+                Console.WriteLine($"Args parsed. Start Year: {startYear}, End Year: {endYear}.");
+                logger.Log($"Start Year: {startYear}, End Year: {endYear}");
+
+                
+                Core(startYear, endYear);
+                
+                /***
+                
+                Console.WriteLine("Have you pulled the latest version of IDP_DATA? (y/n)");
+                var input = Console.ReadLine().ToLower();
+                if (input == "y")
+                {
+                    // If all validations pass, proceed with the core application logic
+                }
+                else
+                {
+                    Console.WriteLine("If you don't have the most up to date info, this program should not run. " +
+                                      "Please git pull for the newest info and then run me.");
+                }*/
+            });
+
+            rootCommand.Invoke(args);
+
+            // Invoke the command line parser with the provided arguments
+            // System.CommandLine will automatically handle help (-h or --help) and validation errors.
     }
 }
