@@ -1,4 +1,4 @@
-﻿using System.Xml;
+using System.Xml;
 
 namespace DefaultNamespace;
 
@@ -22,18 +22,13 @@ public class XMLEntryGatherer
         {"title:level", (node, entry) => entry.TitleLevel = node.GetAttribute("level") },
     };
 
-    public XMLEntryGatherer(string path, Logger logger, string startFolderNumber = "1", string endFolderNumber = "98")
+    public XMLEntryGatherer(string path, Logger logger)
     {
         logger.LogProcessingInfo($"Created new XMLEntryGatherer with path: {path}");
         BiblioPath = path;
-        StartFolder = startFolderNumber;
-        EndFolder = endFolderNumber;
         this.logger = logger;
     }
 
-    public string StartFolder { get; }
-    public string EndFolder { get; }
-    
     public string BiblioPath { get; set; }
     private Logger logger { get; }
 
@@ -47,25 +42,22 @@ public class XMLEntryGatherer
             doc.Load(filePath);
             logger.LogProcessingInfo("Entry loaded.");
 
-            if (doc?.DocumentElement?.ChildNodes != null)
+            foreach (var rawNode in doc?.DocumentElement?.ChildNodes)
             {
-                foreach (var rawNode in doc?.DocumentElement?.ChildNodes!)
+                if (rawNode.GetType() == typeof(XmlElement))
                 {
-                    if (rawNode.GetType() == typeof(XmlElement))
-                    {
-                        var node = ((XmlElement) rawNode);
-                        SetEntryAttributes(node, entry);
-                    }
-                    else
-                    {
-                        logger.LogProcessingInfo($"getting: {filePath}");
-                        Console.WriteLine($"getting: {filePath}");
-                    }
+                    var node = ((XmlElement) rawNode);
+                    SetEntryAttributes(node, entry);
                 }
-
-                //logger.LogProcessingInfo($"Finished processing entry {entry}");
-                return entry;
+                else
+                {
+                    logger.LogProcessingInfo($"getting: {filePath}");
+                    Console.WriteLine($"getting: {filePath}");
+                }
             }
+
+            //logger.LogProcessingInfo($"Finished processing entry {entry}");
+            return entry;
         }
         catch (Exception e)
         {
@@ -111,7 +103,6 @@ public class XMLEntryGatherer
         var dataEntries = new List<XMLDataEntry>();
         foreach (var file in Directory.GetFiles(folder))
         {
-            
             var entry = GetEntry(file);
             //logger.LogProcessingInfo($"Gathered {entry.Title} from file {file}");
             //Console.WriteLine($"Gathered {entry.Title} from file {file}");
@@ -123,51 +114,27 @@ public class XMLEntryGatherer
 
     
     public Dictionary<string, XmlDocument> GatherFiles()
+{
+    var entries = new Dictionary<string, XmlDocument>();
+
+    foreach (var file in Directory.EnumerateFiles(BiblioPath, "*.xml", SearchOption.AllDirectories))
     {
-        //logger.LogProcessingInfo("Gathering XMl Entries");
-        var entries = new Dictionary<string, XmlDocument>();
         try
         {
-            foreach (var folder in Directory.GetDirectories(BiblioPath))
-            {                
-                int startNumb = Convert.ToInt32(StartFolder);
-                int endNumb = Convert.ToInt32(EndFolder);
-
-                int folderNumb = -1;
-                var foldNumb = new string[0];
-                if(folder.Contains("\\")) foldNumb = folder.Split("\\idp.data\\Biblio\\");
-                else if (folder.Contains("/")) foldNumb = folder.Split("/idp.data/Biblio/");
-                
-                if (int.TryParse(foldNumb[1], out folderNumb))
-                {
-                    if (folderNumb >= startNumb && folderNumb <= endNumb)
-                    {
-                        Console.WriteLine($"Gathering files in: {folder}");
-                        logger.LogProcessingInfo($"Gathering files in: {folder}");
-                        foreach (var file in Directory.GetFiles(folder, "*.xml"))
-                        {
-                            var doc = new XmlDocument();
-                            doc.Load(file);
-                            entries.Add(file, doc);
-                        }
-                    }
-                    else
-                    {
-                        Console.WriteLine($"Folder {folder} is outside range {StartFolder}-{EndFolder}");
-                        logger.LogProcessingInfo($"Folder {folder} is outside range {StartFolder}-{EndFolder}");
-                    }
-                }
-            }
+            var doc = new XmlDocument();
+            doc.Load(file);
+            entries[file] = doc;
         }
         catch (Exception e)
         {
-            logger.LogError("Error in gather xml entries: ", e);
-            Console.WriteLine(e);
+            logger.LogError($"Could not load {file}", e);
+            Console.WriteLine($"Skipping {file}: {e.Message}");
         }
-
-        logger.LogProcessingInfo($"Gathered {entries.Count} XML entries for processing.");
-        return entries;
     }
+
+    logger.LogProcessingInfo($"Gathered {entries.Count} XML entries for processing.");
+    return entries;
+}
     
     public List<XMLDataEntry> GatherEntries()
     {
@@ -177,27 +144,11 @@ public class XMLEntryGatherer
         {
             foreach (var folder in Directory.GetDirectories(BiblioPath))
             {
-                
-                int startNumb = Convert.ToInt32(StartFolder);
-                int endNumb = Convert.ToInt32(EndFolder);
-
-                int folderNumb = -1;
-                if (int.TryParse(folder, out folderNumb))
+                foreach (var entry in GetEntriesFromFolder(folder))
                 {
-                    if (folderNumb >= startNumb && folderNumb <= endNumb)
-                    {
-                        foreach (var entry in GetEntriesFromFolder(folder))
-                        {
-                            //logger.Log($"Adding {entry.Title} from {folder} to entries");
-                            //logger.LogProcessingInfo($"Adding {entry.Title} from {folder} to entries");
-                            entries.Add(entry);
-                        }
-                    }
-                    else
-                    {
-                        Console.WriteLine($"Folder {folder} is outside range {StartFolder}-{EndFolder}");
-                        logger.LogProcessingInfo($"Folder {folder} is outside range {StartFolder}-{EndFolder}");
-                    }
+                    //logger.Log($"Adding {entry.Title} from {folder} to entries");
+                    //logger.LogProcessingInfo($"Adding {entry.Title} from {folder} to entries");
+                    entries.Add(entry);
                 }
             }
         }
